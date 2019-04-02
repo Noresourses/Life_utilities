@@ -21,11 +21,49 @@ from google_auth_oauthlib.flow import InstalledAppFlow
 from google.auth.transport.requests import Request
 import base64
 from apiclient import errors
-
+import requests
+from pprint import pprint
+import json
 
 # If modifying these scopes, delete the file token.pickle.
 SCOPES = ['https://www.googleapis.com/auth/gmail.readonly']
 
+
+def sanitize_data(file_data:str) -> list:
+    data = []
+    split_data = file_data.splitlines()
+    pprint(split_data)
+    for line in split_data:
+        if len(line) == 1:
+            continue
+
+        elif len(line.split()) == 1:
+            print(line,'date')
+        else:
+            print('data', line)
+
+            sl = line.split()
+
+            data.append({"SID": sl[0], "FAULT": sl[1], "VBAT": sl[2], "TEMPBAT": sl[3], "TEMP": sl[4], "PRES": sl[5], "HUMID": sl[6], "RAIN": sl[7],
+             "TEMPSHT21": sl[8], "HUMSHT21": sl[9]})
+
+
+
+    return data
+
+def post_data(data_list: list)-> None:
+    url = 'http://localhost:3000/streams/add/5ca351e8869f706d16498f05'
+    headers ={
+        'apikey': 'supersecretkey',
+        'Content-Type': 'application/json'
+    }
+
+    data ={'data': data_list}
+
+    r = requests.post(url, data=json.dumps(data), headers=headers)
+    pprint(r.content)
+
+    pass
 
 def main():
     """Shows basic usage of the Gmail API.
@@ -74,14 +112,19 @@ def main():
                                                                        id=att_id).execute()
                     data = att['data']
                 #todo: these are the attachments
-                file_data = base64.urlsafe_b64decode(data.encode('UTF-8'))
+                file_data = base64.urlsafe_b64decode(data.encode('UTF-8')).decode("utf-8")
+
+                print(file_data )
+                sf_data = sanitize_data(file_data)
+
+                post_data(sf_data)
+                return
                 #path = prefix + part['filename']
 
         #print(parts['headers'])
         print('-----------------')
         print('From: ', [x for x in payload['headers'] if x['name'] == 'From'])
         print('To: ',[x for x in payload['headers'] if x['name'] == 'Delivered-To'])
-
 
 
         pass
